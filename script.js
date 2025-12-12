@@ -845,10 +845,10 @@ function resetLottery() {
             forwardRadio.checked = true;
         }
 
-        // 重置獎項開關為不啟用狀態（預設）
+        // 重置獎項開關為啟用狀態（預設）
         const prizeToggle = document.getElementById('prizeToggle');
         if (prizeToggle) {
-            prizeToggle.checked = false;
+            prizeToggle.checked = true;
             togglePrizeSection(); // 使用函數來正確更新顯示狀態
         }
 
