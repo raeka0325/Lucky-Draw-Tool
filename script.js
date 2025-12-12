@@ -33,20 +33,19 @@ function switchImportMethod(method) {
 // 下載範例檔
 function downloadSample() {
     const sampleData = [
-        ['姓名（必填）', 'Email（選填）'],
-        ['張三', 'zhang@example.com'],
-        ['李四', 'li@example.com'],
-        ['王五', 'wang@example.com'],
-        ['趙六', 'zhao@example.com'],
-        ['錢七', '']
+        ['姓名'],
+        ['張三'],
+        ['李四'],
+        ['王五'],
+        ['趙六'],
+        ['錢七']
     ];
 
     const wb = XLSX.utils.book_new();
     const ws = XLSX.utils.aoa_to_sheet(sampleData);
 
     ws['!cols'] = [
-        { wch: 20 },
-        { wch: 25 }
+        { wch: 20 }
     ];
 
     XLSX.utils.book_append_sheet(wb, ws, '參與者名單');
