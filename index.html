@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>尾牙抽獎小工具</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <div class="container">
+        <header>
+            <h1>🎉 尾牙抽獎小工具 🎊</h1>
+        </header>
+
+        <!-- 導入名單區 -->
+        <div class="import-section" id="importSection">
+            <h2 style="text-align: left; position: relative;">
+                匯入參與者名單
+                <span style="color: #e53e3e; font-size: 0.8em; position: absolute; top: 0; margin-left: 5px;">*</span>
+            </h2>
+
+            <!-- 匯入方式區塊 -->
+            <div class="import-wrapper" style="padding: 0;">
+                <!-- 選擇匯入方式 -->
+                <div class="method-selector" id="methodSelector">
+                    <label class="radio-option">
+                        <input type="radio" name="importMethod" value="file" checked
+                            onchange="switchImportMethod('file')">
+                        <span class="radio-label">上傳 Excel 檔案</span>
+                    </label>
+                    <label class="radio-option">
+                        <input type="radio" name="importMethod" value="paste" onchange="switchImportMethod('paste')">
+                        <span class="radio-label">手動貼上名單</span>
+                    </label>
+                </div>
+
+                <!-- 方法1: 上傳 Excel 檔案 -->
+                <div class="method-content" id="fileMethod">
+                    <p class="hint">支援 .xlsx 和 .xls 格式 · <a href="javascript:void(0)" class="download-link"
+                            onclick="downloadSample()">下載範例檔</a></p>
+
+                    <div id="dropZone" class="drop-zone">
+                        <span style="font-size: 2em; margin-bottom: 10px;">📂</span>
+                        <span>拖曳檔案至此或點擊選擇檔案</span>
+                    </div>
+
+                    <input type="file" id="fileInput" accept=".xlsx,.xls" onchange="importFromFile(event)"
+                        style="display: none;">
+                </div>
+
+                <!-- 方法2: 手動貼上名單 -->
+                <div class="method-content" id="pasteMethod" style="display: none;">
+                    <p class="hint">從 Excel 複製姓名欄位，然後貼到下方</p>
+                    <textarea id="pasteArea" placeholder="請貼上參與者名單，一行一個姓名，例：
+張三
+李四
+王五" class="textarea-field"></textarea>
+                    <button class="btn btn-primary" onclick="importFromPaste()">匯入名單</button>
+                </div>
+
+
+            </div>
+
+            <!-- 參與者名單匯入錯誤訊息 -->
+            <div id="participantImportError"
+                style="display: none; background: #fff5f5; border: 1px solid #e53e3e; color: #000; padding: 15px; border-radius: 8px; margin-top: 15px;">
+                <p style="margin-bottom: 8px; font-weight: bold; color: #e53e3e;">
+                    ⛔ <span id="participantErrorTitle">匯入失敗</span>
+                </p>
+                <p style="font-size: 0.9em; margin: 0; color: #666;">
+                    <span id="participantErrorMessage">請檢查檔案格式</span>
+                </p>
+            </div>
+
+
+
+            <!-- 匯入成功顯示 -->
+            <div id="importSuccessWrapper" style="display: none;">
+                <div class="import-success">
+                    <span class="success-icon">✓</span>
+                    <span class="file-name" id="fileName">檔案名稱</span>
+                    <span class="participant-count">參與人數：<span id="totalCount">0</span> 人</span>
+                </div>
+                <div style="text-align: right; margin-top: 10px;">
+                    <a href="javascript:void(0)" onclick="cancelImport()"
+                        style="color: #666; text-decoration: underline; font-size: 0.85em;">刪除</a>
+                </div>
+            </div>
+
+            <!-- 分隔線 -->
+            <div style="border-top: 1px solid #e2e8f0; margin: 30px 0;"></div>
+
+            <!-- 匯入獎項清單區 -->
+            <div id="prizeSection">
+                <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px;">
+                    <h2 style="text-align: left; margin: 0;">🏆 匯入獎項清單 (可選)</h2>
+
+                    <!-- Switch 開關 -->
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                        <span id="prizeToggleLabel" style="font-size: 0.9em; color: #666;">不啟用</span>
+                        <label class="switch">
+                            <input type="checkbox" id="prizeToggle" onchange="togglePrizeSection()">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- 獎項匯入內容區 -->
+                <div class="import-wrapper" style="padding: 0;">
+                    <div id="prizeContent">
+                        <!-- 獎項匯入方式區域 -->
+                        <div id="prizeImportMethodsArea">
+                            <!-- 獎項匯入方式選擇 -->
+                            <div class="method-selector" id="prizeMethodSelector">
+                                <label class="radio-option">
+                                    <input type="radio" name="prizeImportMethod" value="file" checked
+                                        onchange="switchPrizeImportMethod('file')">
+                                    <span class="radio-label">上傳 Excel 檔案</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="prizeImportMethod" value="paste"
+                                        onchange="switchPrizeImportMethod('paste')">
+                                    <span class="radio-label">手動貼上獎項</span>
+                                </label>
+                            </div>
+
+                            <!-- Excel 上傳 -->
+                            <div class="method-content" id="prizeFileMethod">
+                                <p class="hint">
+                                    支援 .xlsx 和 .xls 格式 ·
+                                    <a href="javascript:void(0)" class="download-link"
+                                        onclick="downloadPrizeSample()">下載範例檔</a>
+                                </p>
+
+                                <div id="prizeDropZone" class="drop-zone">
+                                    <span style="font-size: 2em; margin-bottom: 10px;">📂</span>
+                                    <span>拖曳檔案至此或點擊選擇檔案</span>
+                                </div>
+
+                                <input type="file" id="prizeFileInput" accept=".xlsx,.xls"
+                                    onchange="importPrizeFromFile(event)" style="display: none;">
+                            </div>
+
+                            <!-- 手動貼上 -->
+                            <div class="method-content" id="prizePasteMethod" style="display: none;">
+                                <p class="hint">
+                                    從 Excel 複製獎項名稱欄位，然後貼到下方
+                                </p>
+                                <textarea id="prizePasteArea" placeholder="請貼上獎項清單，一行一個獎項，例：
+特獎：1
+頭獎：2
+貳獎：5
+參獎：10" class="textarea-field"></textarea>
+                                <button class="btn btn-primary" onclick="importPrizeFromPaste()">匯入獎項</button>
+                            </div>
+                        </div>
+
+                        <!-- 獎項匯入成功提示 (Move Here) -->
+                        <div id="prizeImportSuccessWrapper" style="display: none; margin-top: 15px;">
+                            <div class="import-success">
+                                <span class="success-icon">✓</span>
+                                <span class="file-name" id="prizeFileName">檔案名稱</span>
+                                <span class="participant-count">
+                                    獎項組數：<span id="prizeGroupCount">0</span> 項，獎項數：<span id="prizeTotalCount">0</span> 個
+                                </span>
+                            </div>
+                            <div style="text-align: right; margin-top: 10px;">
+                                <a href="javascript:void(0)" onclick="clearPrizeList()"
+                                    style="color: #666; text-decoration: underline; font-size: 0.85em;">刪除</a>
+                            </div>
+                        </div>
+
+                        <!-- 抽獎順序選擇 -->
+                        <div style="margin-top: 20px;">
+                            <div style="margin-bottom: 10px; font-weight: 500; color: #4a5568; font-size: 0.9em;">抽獎順序：
+                            </div>
+                            <div class="method-selector">
+                                <label class="radio-option">
+                                    <input type="radio" name="prizeDrawOrder" value="forward" checked
+                                        onchange="setPrizeDrawOrder('forward')">
+                                    <span class="radio-label">正序抽獎 (從第一欄獎項開始抽獎)</span>
+                                </label>
+                                <label class="radio-option">
+                                    <input type="radio" name="prizeDrawOrder" value="reverse"
+                                        onchange="setPrizeDrawOrder('reverse')">
+                                    <span class="radio-label">倒序抽獎 (從最後一欄獎項開始抽獎)</span>
+                                </label>
+                            </div>
+                        </div>
+
+
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- 按鈕區域（移到最下方） -->
+            <div id="confirmButtonArea"
+                style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #e2e8f0;">
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn btn-secondary" id="cancelImportButton" onclick="cancelImport()"
+                        disabled>取消</button>
+                    <button class="btn btn-success" id="confirmStartButton" onclick="confirmStartLottery()"
+                        disabled>確認開始抽獎</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- 重新一輪按鈕 -->
+        <div class="reset-wrapper" id="resetWrapper" style="display: none;">
+            <a href="javascript:void(0)" class="reset-link" onclick="resetLottery()">重新一輪</a>
+        </div>
+
+        <!-- 抽獎頁面 -->
+        <div class="lottery-section" id="lotterySection" style="display: none;">
+            <!-- 主抽獎區卡片 -->
+            <div class="main-draw-card"
+                style="background: white; border-radius: 10px; padding: 25px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);">
+                <!-- 獎項資訊區 -->
+                <div id="prizeInfoArea">
+                    <!-- 如果有匯入獎項清單，顯示當前獎項 -->
+                    <div id="currentPrizeInfo"
+                        style="display: none; background: white; padding: 20px 0; color: #000; text-align: center;">
+                        <div style="font-size: 0.9em; opacity: 0.7; margin-bottom: 5px;">當前獎項</div>
+                        <div style="font-size: 2em; font-weight: bold; margin-bottom: 10px;" id="currentPrizeName">特獎
+                        </div>
+                        <div
+                            style="font-size: 1.1em; position: relative; display: flex; justify-content: center; align-items: center; margin-top: 5px; margin-bottom: 20px; min-height: 24px;">
+                            <div>
+                                獎項數量：<span id="currentPrizeCount">1</span> 個
+                                <span style="font-size: 0.8em; opacity: 0.8; margin-left: 8px;">(已抽出 <span
+                                        id="currentPrizeDrawn">0</span> 個)</span>
+                            </div>
+                            <!-- 下組獎項顯示 -->
+                            <div id="nextPrizeInfo"
+                                style="font-size: 0.9em; opacity: 0.9; position: absolute; right: 0;">
+                                下組待抽獎項：<span id="nextPrizeName" style="font-weight: bold;">無</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 抽獎顯示區 -->
+                <div class="draw-display">
+                    <span id="drawIcon" style="font-size: 2em; margin-bottom: 10px;">🎰</span>
+                    <div class="rolling-name" id="rollingName">準備抽獎</div>
+                </div>
+
+                <!-- 剩餘人數 -->
+                <div class="remaining-count">
+                    <span>剩餘人數：</span>
+                    <span class="count-number" id="remainingCount">0</span>
+                </div>
+
+                <!-- 抽獎按鈕 -->
+                <div class="draw-area" id="drawButtonArea">
+                    <button class="btn btn-primary" id="drawButton" onclick="drawOne()">開始抽獎</button>
+                    <div id="prizeCompleteInfo" style="display: none; text-align: center;">
+                        <p style="color: #48bb78; font-weight: bold; margin-bottom: 15px;">✓ 本獎項已抽獎完成</p>
+                        <button class="btn btn-primary" id="nextPrizeButton"
+                            onclick="moveToNextPrize()">繼續抽下一個獎項</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 已抽中名單 -->
+            <!-- 已抽中名單 -->
+            <div style="text-align: right; margin-bottom: 10px; margin-top: 20px;">
+                <a href="javascript:void(0)" onclick="downloadWinnersList()" class="download-link"
+                    style="font-size: 0.85em;">下載已抽中名單</a>
+            </div>
+            <div class="winners-section"
+                style="background: white; border-radius: 10px; padding: 25px; box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);">
+                <h3 style="text-align: left; margin-bottom: 20px;">已抽中名單</h3>
+                <div class="winners-grid" id="winnersGrid" style="text-align: left;">
+                    <p class="no-winners">尚未開始抽獎</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
